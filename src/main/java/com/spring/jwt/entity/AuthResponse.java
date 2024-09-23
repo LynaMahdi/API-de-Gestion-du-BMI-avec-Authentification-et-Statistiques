@@ -1,9 +1,7 @@
 package com.spring.jwt.entity;
 
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
+
 
 @Data
 @Builder
@@ -11,12 +9,13 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public class AuthResponse {
     String token;
-
-    public String getToken() {
-        return token;
-    }
+    String refreshToken;
 
     public void setToken(String token) {
         this.token = token;
+    }
+
+    public void setRefreshToken(String refreshToken) {
+        this.refreshToken = refreshToken;
     }
 }

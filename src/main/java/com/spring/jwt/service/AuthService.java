@@ -4,6 +4,7 @@ import com.spring.jwt.entity.AuthResponse;
 import com.spring.jwt.entity.LoginRequest;
 import com.spring.jwt.entity.RegisterRequest;
 import com.spring.jwt.jwt.JwtService;
+import com.spring.jwt.jwt.TokenRefreshRequest;
 import com.spring.jwt.repository.UserRespository;
 import com.spring.jwt.user.Role;
 import com.spring.jwt.user.User;
@@ -29,21 +30,18 @@ public class AuthService {
     private final AuthenticationManager authManager;
 
     public AuthResponse login(LoginRequest request) {
-        // Authentifier l'utilisateur
         authManager.authenticate(new UsernamePasswordAuthenticationToken(request.getUsername(), request.getPassword()));
-        UserDetails user = userRespository.findByUsername(request.getUsername()).orElseThrow(() ->
-                new UsernameNotFoundException("Utilisateur non trouvé"));
+        UserDetails user = userRespository.findByUsername(request.getUsername()).orElseThrow(() -> new UsernameNotFoundException("Utilisateur non trouvé"));
+
+        // Générer le token d'accès et le refresh token
+        String accessToken = jwtService.getToken(user);
+        String refreshToken = jwtService.generateRefreshToken(user);  // Générer le refresh token
 
         return AuthResponse.builder()
-                .token(jwtService.getToken(user))
+                .token(accessToken)
+                .refreshToken(refreshToken)
                 .build();
-
     }
-
-
-
-
-
 
     public AuthResponse register(RegisterRequest request) {
         User user = User.builder()
@@ -55,10 +53,15 @@ public class AuthService {
 
         userRespository.save(user);
 
+        String accessToken = jwtService.getToken(user);
+        String refreshToken = jwtService.generateRefreshToken(user);  // Générer le refresh token
+
         return AuthResponse.builder()
-                .token(jwtService.getToken(user))
+                .token(accessToken)
+                .refreshToken(refreshToken)  // Ajouter le refresh token ici
                 .build();
     }
+
 
 
     public List<User> allUsers() {
@@ -67,6 +70,26 @@ public class AuthService {
         userRespository.findAll().forEach(users::add);
 
         return users;
+    }
+
+
+    // Rafraîchir le token
+    public AuthResponse refreshToken(TokenRefreshRequest request) {
+        String refreshToken = request.getRefreshToken();
+        String username = jwtService.getUsernameFromToken(refreshToken);
+
+        UserDetails user = userRespository.findByUsername(username).orElseThrow(() -> new UsernameNotFoundException("Utilisateur non trouvé"));
+
+        // Vérifier si le refresh token est valide
+        if (jwtService.isTokenValid(refreshToken, user)) {
+            String newAccessToken = jwtService.getToken(user);
+            return AuthResponse.builder()
+                    .token(newAccessToken)
+                    .refreshToken(refreshToken)
+                    .build();
+        }
+
+        throw new RuntimeException("Refresh token invalide");
     }
 
 }

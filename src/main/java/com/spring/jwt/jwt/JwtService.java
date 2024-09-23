@@ -34,6 +34,16 @@ public class JwtService {
                 .compact();
     }
 
+    // Générer un token de rafraîchissement avec une durée de vie plus longue
+    public String generateRefreshToken(UserDetails userDetails) {
+        return Jwts.builder()
+                .setSubject(userDetails.getUsername())
+                .setIssuedAt(new Date(System.currentTimeMillis()))
+                .setExpiration(new Date(System.currentTimeMillis() + 1000 * 60 * 60 * 24 * 7))  // Refresh token valable 7 jours
+                .signWith(getKey(), SignatureAlgorithm.HS256)
+                .compact();
+    }
+
     private Key getKey() {
         byte[] keyBytes = Decoders.BASE64.decode(SECRET_KEY);
         return Keys.hmacShaKeyFor(keyBytes);
@@ -69,4 +79,7 @@ public class JwtService {
     private boolean isTokenExpired(String token) {
         return getExpiration(token).before(new Date());
     }
+
+
+
 }
